@@ -8,6 +8,7 @@ import os
 import json
 from PIL import Image
 from tqdm import tqdm
+import shutil
 
 import torch
 from torchvision import transforms
@@ -135,5 +136,38 @@ def save_tensors_in_hashed_dicts(image_base_path, tensor_destination_base_path, 
         save_path = os.path.join(tensor_destination_base_path, f'tensors_dict_{dict_key}.pt')
         torch.save(tensor_dict, save_path)
         print(f"Saved {len(tensor_dict)} tensors in '{save_path}'")
+
+
+
+def copy_images_into_directories(image_base_path, destination_base_path, prime):
+    """
+    Copies image files from the given base path into multiple directories
+    based on the hash value of their filenames and a prime number.
+
+    Args:
+        image_base_path (str): The path to the directory containing the original image files.
+        destination_base_path (str): The base path where images will be copied into hashed directories.
+        prime (int): A prime number used for hashing to determine the directory structure.
+    """
+    # Ensure the base directory for the copied images exists
+    if not os.path.exists(destination_base_path):
+        os.makedirs(destination_base_path, exist_ok=True)
+
+    # Process each image file in the base path
+    for image_filename in tqdm(os.listdir(image_base_path), desc="Copying Images"):
+        # Determine the directory using the hash of the filename
+        directory_name = str(hash_mod(image_filename, prime))
+        destination_dir = os.path.join(destination_base_path, directory_name)
+
+        # Create the directory if it doesn't exist
+        if not os.path.exists(destination_dir):
+            os.makedirs(destination_dir, exist_ok=True)
+
+        # Copy the file
+        source_path = os.path.join(image_base_path, image_filename)
+        destination_path = os.path.join(destination_dir, image_filename)
+        shutil.copy(source_path, destination_path)
+
+    print(f"All images copied to {destination_base_path}.")
 
 
