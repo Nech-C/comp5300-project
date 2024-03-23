@@ -1,3 +1,9 @@
+"""  dataset_processing.py
+    Helper functions for processing the GQA dataset. 
+    This script contains helper functions to download the GQA dataset, load and transform images,
+    get the path to save tensor files, download the GQA dataset, and trim question files.
+    
+"""
 import os
 import json
 from PIL import Image
@@ -96,3 +102,38 @@ def trim_question_files(source_questions_path, trimmed_questions_path, fields_to
             json.dump(trimmed_data, file, indent=4)
 
     print(f"All files processed and saved in {trimmed_questions_path}.")
+
+def save_tensors_in_hashed_dicts(image_base_path, tensor_destination_base_path, prime):
+    """
+    Processes images, converts them to tensors, and organizes them into dictionaries
+    based on the hash value of their filenames. Each dictionary corresponds to a unique
+    hash value and is saved to disk.
+
+    Args:
+        image_base_path (str): The path to the directory containing the original image files.
+        tensor_destination_base_path (str): The path where the dictionaries of tensorized images will be saved.
+        prime (int): The prime number used for hashing to determine dictionary keys.
+    """
+    # Initialize dictionaries to store tensors
+    tensor_dicts = {i: {} for i in range(prime)}
+
+    # Process each image file in the base path
+    for image_filename in tqdm(os.listdir(image_base_path), desc="Processing Images"):
+        image_path = os.path.join(image_base_path, image_filename)
+
+        # Transform the image into a tensor
+        image_tensor = load_and_transform_image(image_path)
+
+        # Determine the dictionary key based on the hash of the filename
+        dict_key = hash_mod(image_filename, prime)
+
+        # Add the tensor to the appropriate dictionary
+        tensor_dicts[dict_key][image_filename] = image_tensor
+
+    # Save each dictionary to disk
+    for dict_key, tensor_dict in tensor_dicts.items():
+        save_path = os.path.join(tensor_destination_base_path, f'tensors_dict_{dict_key}.pt')
+        torch.save(tensor_dict, save_path)
+        print(f"Saved {len(tensor_dict)} tensors in '{save_path}'")
+
+
